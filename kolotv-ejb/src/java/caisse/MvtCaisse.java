@@ -224,14 +224,37 @@ public class MvtCaisse extends ClassEtat {
             report.createObject(u, c);
             // report.validerObject(u,c);
         }
-        System.out.println(this.getIdPrevision());
-        Prevision prevision = new Prevision();
-        prevision.setId(this.getIdPrevision());
-        Prevision[] tempP = (Prevision[]) CGenUtil.rechercher(prevision, null, null, c,
-                "");
-        System.out.println(tempP.length);
+        String idFacture = null;
+        String idReserv = null;
+        if (this.getIdPrevision() != null) {
+            System.out.println(this.getIdPrevision());
+            Prevision prevision = new Prevision();
+            prevision.setId(this.getIdPrevision());
+            Prevision[] tempP = (Prevision[]) CGenUtil.rechercher(prevision, null, null, c,
+                    "");
+            if (tempP.length > 0) {
+                prevision = tempP[0];
+            }
+            idFacture = prevision.getIdFacture();
+            Vente v = new Vente();
+            v.setId(idFacture);
+            Vente[] tempV = (Vente[]) CGenUtil.rechercher(v, null, null, c,
+                    "");
+            if (tempV.length > 0) {
+                v = tempV[0];
+            }
+            if (v.getIdOrigine() != null) {
+                idReserv = v.getIdOrigine();
+            }
+        }
+        if (idFacture != null) {
+            this.setIdOrigine(idFacture);
+        }
+        if (idReserv != null) {
+            this.setIdOp(idReserv);
+        }
         MvtCaisse mvt = (MvtCaisse) super.createObject(u, c);
-        // (u, c);
+
         return mvt;
     }
 
