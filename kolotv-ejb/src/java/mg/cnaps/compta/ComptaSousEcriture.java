@@ -39,7 +39,6 @@ public class ComptaSousEcriture extends ClassFille {
     private Date daty, dateComptable;
     private String analytique;
     private String source;
-
     private String idJournal;
     private String ecriture;
     private String numero;
@@ -391,7 +390,6 @@ public class ComptaSousEcriture extends ClassFille {
     @Override
 
     public void controler(Connection c) throws Exception {
-
         this.testEtatMoisExercice("D AJOUTER UNE ECRITURE", c);
         this.testCompteExiste(c);
         this.checkDebitCredit();
@@ -412,7 +410,7 @@ public class ComptaSousEcriture extends ClassFille {
 
     private void testCompteExiste(Connection c) throws Exception {
         ComptaCompte comptacompte = new ComptaCompte();
-        // comptacompte.setNomTable(histoSync);
+        System.out.println(this.compte);
         comptacompte.setCompte(this.compte);
         ComptaCompte[] comptes = (ComptaCompte[]) CGenUtil.rechercher(comptacompte, null, null, c, "");
         if (comptes.length <= 0) {

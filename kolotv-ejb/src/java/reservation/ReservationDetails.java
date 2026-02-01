@@ -62,6 +62,7 @@ public class ReservationDetails extends ClassFille {
     public int getIsEntete() {
         return isEntete;
     }
+
     public void setIsEntete(int isEntete) {
         this.isEntete = isEntete;
     }
@@ -86,7 +87,6 @@ public class ReservationDetails extends ClassFille {
         return duree;
     }
 
-
     public void setHeure(String heure) throws Exception {
         if (!CalendarUtil.isValidTime(heure)) {
             throw new Exception("L' heure doit etre de format HH:MM:SS");
@@ -97,8 +97,7 @@ public class ReservationDetails extends ClassFille {
     public void setDuree(String duree) throws Exception {
         if (!CalendarUtil.isValidTime(duree)) {
             this.duree = duree;
-        }
-        else {
+        } else {
             this.duree = String.valueOf(CalendarUtil.HMSToSecond(duree));
         }
     }
@@ -119,18 +118,17 @@ public class ReservationDetails extends ClassFille {
         this.idBcFille = idBcFille;
     }
 
-    public double getMontantCalcule()
-    {
-        return this.getQte()*this.getPu();
+    public double getMontantCalcule() {
+        return this.getQte() * this.getPu();
     }
 
     public String getId() {
         return id;
     }
+
     public String getHeure() {
         return heure;
     }
-
 
     public void setId(String id) {
         this.id = id;
@@ -165,8 +163,8 @@ public class ReservationDetails extends ClassFille {
     }
 
     public void setQte(double qte) throws Exception {
-        if(this.getMode().equals("modif")){
-            if(qte <= 0){
+        if (this.getMode().equals("modif")) {
+            if (qte <= 0) {
                 throw new Exception("Quantité insuffisante pour une ligne");
             }
         }
@@ -186,11 +184,11 @@ public class ReservationDetails extends ClassFille {
     }
 
     public void setPu(double pu) throws Exception {
-//        if(this.getMode().equals("modif")){
-//            if(pu < 0){
-//                throw new Exception("Prix unitaire invalide pour une ligne");
-//            }
-//        }
+        // if(this.getMode().equals("modif")){
+        // if(pu < 0){
+        // throw new Exception("Prix unitaire invalide pour une ligne");
+        // }
+        // }
         this.pu = pu;
     }
 
@@ -214,28 +212,30 @@ public class ReservationDetails extends ClassFille {
         this.preparePk("RESADET", "GETSEQRESERVATIONDETAILS");
         this.setId(makePK(c));
     }
+
     public List<ReservationDetails> decomposer() throws Exception {
         List<ReservationDetails> res = new ArrayList<ReservationDetails>();
-        for(int i=1;i<=this.getQte();i++) {
+        for (int i = 1; i <= this.getQte(); i++) {
             ReservationDetails r = (ReservationDetails) this.dupliquerSansBase();
             r.setQte(1);
-            r.setDaty(Utilitaire.ajoutJourDate(this.getDaty(),i-1));
+            r.setDaty(Utilitaire.ajoutJourDate(this.getDaty(), i - 1));
             res.add(r);
         }
         return res;
     }
+
     public ReservationDetails[] decomposerEnTableau() throws Exception {
-        List<ReservationDetails> res=decomposer();
-        return res.toArray (new ReservationDetails[res.size()]);
+        List<ReservationDetails> res = decomposer();
+        return res.toArray(new ReservationDetails[res.size()]);
     }
 
     public Acte genererDiffusionAvecControl(Connection c) throws Exception {
         Acte acte = new Acte();
         Reservation mere = new Reservation();
         mere.setId(this.getIdmere());
-        mere = (Reservation) CGenUtil.rechercher(mere,null,null,c,"")[0];
+        mere = (Reservation) CGenUtil.rechercher(mere, null, null, c, "")[0];
         acte.setIdproduit(this.getIdproduit());
-        acte.setLibelle("Diffusion depuis la reservation "+this.getId());
+        acte.setLibelle("Diffusion depuis la reservation " + this.getId());
         acte.setIdclient(mere.getIdclient());
         acte.setIdSupport(mere.getIdSupport());
         acte.setHeure(this.getHeure());
@@ -246,25 +246,26 @@ public class ReservationDetails extends ClassFille {
         acte.setIdReservationFille(this.getId());
         acte.setIdreservation(this.getIdmere());
         acte.setRemise(this.getRemise());
-//        acte.controlleDeDiffusion(c);
+        // acte.controlleDeDiffusion(c);
         return acte;
     }
 
-    public void diffuser(String user,Connection c) throws Exception {
+    public void diffuser(String user, Connection c) throws Exception {
         boolean estOuvert = false;
-        if (Utilitaire.compareDaty(Utilitaire.dateDuJourSql(), this.getDaty())==-1) {
-            throw new Exception("Pour diffuser cette reservation: sa date doit etre superieure ou egal a la date du jour");
+        if (Utilitaire.compareDaty(Utilitaire.dateDuJourSql(), this.getDaty()) == -1) {
+            throw new Exception(
+                    "Pour diffuser cette reservation: sa date doit etre superieure ou egal a la date du jour");
         }
         try {
             if (c == null) {
                 c = new UtilDB().GetConn();
                 estOuvert = true;
             }
-            if (this.getDiffusion(c)==null) {
+            if (this.getDiffusion(c) == null) {
                 Acte acte = this.genererDiffusionAvecControl(c);
                 acte.setEtat(ConstanteEtat.getEtatValider());
-                acte = (Acte) acte.createObject(user,c);
-                this.updateEtat(ConstanteKolo.etatDiffuser,this.getId(),c);
+                acte = (Acte) acte.createObject(user, c);
+                this.updateEtat(ConstanteKolo.etatDiffuser, this.getId(), c);
             }
 
         } catch (Exception ex) {
@@ -297,7 +298,7 @@ public class ReservationDetails extends ClassFille {
         return new_fille;
     }
 
-    public Acte getDiffusion (Connection c) throws Exception {
+    public Acte getDiffusion(Connection c) throws Exception {
         boolean estOuvert = false;
         try {
             if (c == null) {
@@ -307,8 +308,8 @@ public class ReservationDetails extends ClassFille {
 
             Acte acte = new Acte();
             acte.setIdReservationFille(this.getId());
-            Acte [] list = (Acte[]) CGenUtil.rechercher(acte,null,null,c,"");
-            if (list.length>0){
+            Acte[] list = (Acte[]) CGenUtil.rechercher(acte, null, null, c, "");
+            if (list.length > 0) {
                 return list[0];
             }
 
@@ -324,7 +325,7 @@ public class ReservationDetails extends ClassFille {
         return null;
     }
 
-    public Ingredients getProduit (Connection c) throws Exception {
+    public Ingredients getProduit(Connection c) throws Exception {
         boolean estOuvert = false;
         try {
             if (c == null) {
@@ -334,8 +335,8 @@ public class ReservationDetails extends ClassFille {
 
             Ingredients acte = new Ingredients();
             acte.setId(this.getIdproduit());
-            Ingredients [] list = (Ingredients[]) CGenUtil.rechercher(acte,null,null,c,"");
-            if (list.length>0){
+            Ingredients[] list = (Ingredients[]) CGenUtil.rechercher(acte, null, null, c, "");
+            if (list.length > 0) {
                 return list[0];
             }
 
@@ -351,7 +352,7 @@ public class ReservationDetails extends ClassFille {
         return null;
     }
 
-    public Media getMedia (Connection c) throws Exception {
+    public Media getMedia(Connection c) throws Exception {
         boolean estOuvert = false;
         try {
             if (c == null) {
@@ -359,11 +360,11 @@ public class ReservationDetails extends ClassFille {
                 estOuvert = true;
             }
 
-            if (this.getIdMedia()!=null){
+            if (this.getIdMedia() != null) {
                 Media acte = new Media();
                 acte.setId(this.getIdMedia());
-                Media [] list = (Media[]) CGenUtil.rechercher(acte,null,null,c,"");
-                if (list.length>0){
+                Media[] list = (Media[]) CGenUtil.rechercher(acte, null, null, c, "");
+                if (list.length > 0) {
                     return list[0];
                 }
             }
@@ -383,8 +384,8 @@ public class ReservationDetails extends ClassFille {
     public Reservation getReservationMere(Connection c) throws Exception {
         Reservation search = new Reservation();
         search.setId(this.getIdmere());
-        Reservation [] list = (Reservation[]) CGenUtil.rechercher(search,null,null,c,"");
-        if (list.length>0){
+        Reservation[] list = (Reservation[]) CGenUtil.rechercher(search, null, null, c, "");
+        if (list.length > 0) {
             return list[0];
         }
         return null;
@@ -392,56 +393,60 @@ public class ReservationDetails extends ClassFille {
 
     @Override
     public ClassMAPTable createObject(String u, Connection c) throws Exception {
-//        controlMedia(c);
-//        if (this.getIdparrainage()==null || this.getIdparrainage().isEmpty()) {
-////            Reservation mere = (Reservation) this.getReservationMere(c);
-////            Client client = mere.getClient(c);
-//
-//            Ingredients service = this.getProduit(c);
-////            if (service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientMATRAQUAGE)) {
-////                controlleDeDiffusion(c);
-////            }
-//            System.out.println("servicy");
-//            if(!service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientPlateau)){
-//                System.out.println("servicy2");
-//                this.setPu(service.getPrixFinal(this.getHeure(),this.getDaty(),service.getIdSupport(),c));
-//            }
-//        }
+        // controlMedia(c);
+        // if (this.getIdparrainage()==null || this.getIdparrainage().isEmpty()) {
+        //// Reservation mere = (Reservation) this.getReservationMere(c);
+        //// Client client = mere.getClient(c);
+        //
+        // Ingredients service = this.getProduit(c);
+        //// if
+        // (service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientMATRAQUAGE))
+        // {
+        //// controlleDeDiffusion(c);
+        //// }
+        // System.out.println("servicy");
+        // if(!service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientPlateau)){
+        // System.out.println("servicy2");
+        // this.setPu(service.getPrixFinal(this.getHeure(),this.getDaty(),service.getIdSupport(),c));
+        // }
+        // }
         return super.createObject(u, c);
     }
 
     @Override
-    public void controler(Connection c) throws Exception{
+    public void controler(Connection c) throws Exception {
         controlMedia(c);
-        if (this.getIdparrainage()==null || this.getIdparrainage().isEmpty()) {
+        if (this.getIdparrainage() == null || this.getIdparrainage().isEmpty()) {
 
             Ingredients service = this.getProduit(c);
-//            if (service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientMATRAQUAGE)) {
-//                controlleDeDiffusion(c);
-//            }
-            if(!service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientPlateau)){
-                this.setPu(service.getPrixFinal(this.getHeure(),this.getDaty(),service.getIdSupport(),c));
+            // if
+            // (service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientMATRAQUAGE))
+            // {
+            // controlleDeDiffusion(c);
+            // }
+            if (!service.getCategorieIngredient().equalsIgnoreCase(ConstanteKolo.categorieIngredientPlateau)) {
+                this.setPu(service.getPrixFinal(this.getHeure(), this.getDaty(), service.getIdSupport(), c));
             }
         }
     }
 
-
     public void controlMedia(Connection c) throws Exception {
-        if (this.getIdMedia()!=null && !this.getIdMedia().isEmpty()){
+        if (this.getIdMedia() != null && !this.getIdMedia().isEmpty()) {
             Media media = this.getMedia(c);
             Ingredients service = this.getProduit(c);
-            if (!media.getIdTypeMedia().equals(service.getCategorieIngredient())){
+            if (!media.getIdTypeMedia().equals(service.getCategorieIngredient())) {
                 throw new Exception("le type du media et du service doivent etre egal");
             }
-            if (service.getDureeMax()>0){
-                if (Integer.parseInt(media.getDuree())>service.getDureeMax()){
-                    throw new Exception("la duree du media doit etre inferieur ou egal a "+service.getDureeMax());
+            if (service.getDureeMax() > 0) {
+                System.out.println(media.getDuree());
+                if (Integer.parseInt(media.getDuree()) > service.getDureeMax()) {
+                    throw new Exception("la duree du media doit etre inferieur ou egal a " + service.getDureeMax());
                 }
             }
         }
     }
 
-    public void controlleDeDiffusion (Connection c) throws Exception {
+    public void controlleDeDiffusion(Connection c) throws Exception {
         boolean estOuvert = false;
         try {
             if (c == null) {
@@ -460,36 +465,39 @@ public class ReservationDetails extends ClassFille {
             maxSpot.setIdSupport(service.getIdSupport());
             maxSpot.setJour(CalendarUtil.getDayOfWeek(this.getDaty().toLocalDate()));
             maxSpot.setIdCategorieIngredient(service.getCategorieIngredient());
-            DisponibiliteHeure [] dureeMaxSpots = (DisponibiliteHeure[]) CGenUtil.rechercher(maxSpot,null,null,c,"");
-            for (DisponibiliteHeure d:dureeMaxSpots){
-                LocalTime [] interval = new LocalTime[2];
+            DisponibiliteHeure[] dureeMaxSpots = (DisponibiliteHeure[]) CGenUtil.rechercher(maxSpot, null, null, c, "");
+            for (DisponibiliteHeure d : dureeMaxSpots) {
+                LocalTime[] interval = new LocalTime[2];
                 interval[0] = LocalTime.parse(d.getHeureDebut());
                 interval[1] = LocalTime.parse(d.getHeureFin());
-                if (CalendarUtil.checkTime(heure_debut,interval[0],interval[1]) && CalendarUtil.checkTime(heure_fin,interval[0],interval[1])){
-                    if (d.getResteDuree() < dureeDeDiffusion){
-                        throw new Exception("La duree de la diffusion ne doit pas depasser "+CalendarUtil.secondToHMS((long) d.getResteDuree()));
+                if (CalendarUtil.checkTime(heure_debut, interval[0], interval[1])
+                        && CalendarUtil.checkTime(heure_fin, interval[0], interval[1])) {
+                    if (d.getResteDuree() < dureeDeDiffusion) {
+                        throw new Exception("La duree de la diffusion ne doit pas depasser "
+                                + CalendarUtil.secondToHMS((long) d.getResteDuree()));
                     }
                     dureeDeDiffusion = 0;
-                }
-                else {
-                    if (CalendarUtil.checkTime(heure_debut,interval[0],interval[1])){
-                        int portionDuree = (int) CalendarUtil.getDuration(heure_debut,interval[1]);
-                        if (d.getResteDuree() < portionDuree){
-                            throw new Exception("La duree de la diffusion ne doit pas depasser "+CalendarUtil.secondToHMS((long) d.getResteDuree()));
+                } else {
+                    if (CalendarUtil.checkTime(heure_debut, interval[0], interval[1])) {
+                        int portionDuree = (int) CalendarUtil.getDuration(heure_debut, interval[1]);
+                        if (d.getResteDuree() < portionDuree) {
+                            throw new Exception("La duree de la diffusion ne doit pas depasser "
+                                    + CalendarUtil.secondToHMS((long) d.getResteDuree()));
                         }
                         dureeDeDiffusion -= portionDuree;
                     }
-                    if (CalendarUtil.checkTime(heure_fin,interval[0],interval[1])){
-                        int portionDuree = (int) CalendarUtil.getDuration(interval[0],heure_fin);
-                        if (d.getResteDuree() < CalendarUtil.getDuration(interval[0],heure_fin)){
-                            throw new Exception("La duree de la diffusion ne doit pas depasser "+CalendarUtil.secondToHMS((long) d.getResteDuree()));
+                    if (CalendarUtil.checkTime(heure_fin, interval[0], interval[1])) {
+                        int portionDuree = (int) CalendarUtil.getDuration(interval[0], heure_fin);
+                        if (d.getResteDuree() < CalendarUtil.getDuration(interval[0], heure_fin)) {
+                            throw new Exception("La duree de la diffusion ne doit pas depasser "
+                                    + CalendarUtil.secondToHMS((long) d.getResteDuree()));
                         }
                         dureeDeDiffusion -= portionDuree;
                     }
                 }
             }
 
-            if (dureeDeDiffusion>0){
+            if (dureeDeDiffusion > 0) {
                 throw new Exception("Impossible d'ajouter la reservation : Aucune heure de diffusion disponible");
             }
 
@@ -504,7 +512,7 @@ public class ReservationDetails extends ClassFille {
         }
     }
 
-    public static ReservationDetails[] reporter(String u,String date, String heure,String[] ids) throws Exception{
+    public static ReservationDetails[] reporter(String u, String date, String heure, String[] ids) throws Exception {
         Connection c = null;
         boolean estOuvert = false;
         List<ReservationDetails> res = new ArrayList<>();
@@ -514,15 +522,16 @@ public class ReservationDetails extends ClassFille {
                 estOuvert = true;
             }
 
-            if (!LocalDateTime.of(Date.valueOf(date).toLocalDate(), LocalTime.parse(heure)).isAfter(LocalDateTime.now())) {
+            if (!LocalDateTime.of(Date.valueOf(date).toLocalDate(), LocalTime.parse(heure))
+                    .isAfter(LocalDateTime.now())) {
                 throw new Exception("La date et l'heure doivent etre dans le futur.");
             }
 
-            for(String id:ids){
+            for (String id : ids) {
 
                 ReservationDetails rsvdtls = new ReservationDetails();
                 rsvdtls.setId(id);
-                rsvdtls = (ReservationDetails) CGenUtil.rechercher(rsvdtls,null,null,c,"")[0];
+                rsvdtls = (ReservationDetails) CGenUtil.rechercher(rsvdtls, null, null, c, "")[0];
 
                 rsvdtls.setHeure(heure);
                 rsvdtls.setDaty(Date.valueOf(date));
@@ -539,10 +548,10 @@ public class ReservationDetails extends ClassFille {
                 c.close();
             }
         }
-        return res.toArray(new ReservationDetails[]{});
+        return res.toArray(new ReservationDetails[] {});
     }
 
-    public static ReservationDetails[] diffuserMultiple(String u,String[] ids) throws Exception{
+    public static ReservationDetails[] diffuserMultiple(String u, String[] ids) throws Exception {
         Connection c = null;
         boolean estOuvert = false;
         List<ReservationDetails> res = new ArrayList<>();
@@ -552,10 +561,10 @@ public class ReservationDetails extends ClassFille {
                 estOuvert = true;
             }
 
-            for(String id:ids){
+            for (String id : ids) {
                 ReservationDetails rsvdtls = new ReservationDetails();
                 rsvdtls.setId(id);
-                rsvdtls = (ReservationDetails) CGenUtil.rechercher(rsvdtls,null,null,c,"")[0];
+                rsvdtls = (ReservationDetails) CGenUtil.rechercher(rsvdtls, null, null, c, "")[0];
                 rsvdtls.diffuser(u, c);
                 res.add(rsvdtls);
             }
@@ -569,8 +578,9 @@ public class ReservationDetails extends ClassFille {
                 c.close();
             }
         }
-        return res.toArray(new ReservationDetails[]{});
+        return res.toArray(new ReservationDetails[] {});
     }
+
     public String getIdparrainage() {
         return idparrainage;
     }
@@ -587,7 +597,7 @@ public class ReservationDetails extends ClassFille {
         this.isDependant = isDependant;
     }
 
-    public LocalDate [] getDateReservation(Connection c) throws Exception {
+    public LocalDate[] getDateReservation(Connection c) throws Exception {
         boolean estOuvert = false;
         List<LocalDate> res = new ArrayList<>();
         try {
@@ -612,15 +622,14 @@ public class ReservationDetails extends ClassFille {
                 c.close();
             }
         }
-        return res.toArray(new LocalDate[]{});
+        return res.toArray(new LocalDate[] {});
     }
 
-    public int getDureeFinal (Connection c) throws Exception {
+    public int getDureeFinal(Connection c) throws Exception {
         Media media = this.getMedia(c);
         if (media != null) {
             return Integer.parseInt(media.getDuree());
-        }
-        else {
+        } else {
             Ingredients ing = this.getProduit(c);
             if (ing != null) {
                 return ing.getDuree();
@@ -667,10 +676,10 @@ public class ReservationDetails extends ClassFille {
         }
     }
 
-    public ReservationDetails changeEtat(int etat,String u,Connection c) throws Exception {
-        if (this.getEtat()<ConstanteKolo.etatDiffuser){
+    public ReservationDetails changeEtat(int etat, String u, Connection c) throws Exception {
+        if (this.getEtat() < ConstanteKolo.etatDiffuser) {
             this.setEtat(etat);
-            this.updateToTableWithHisto(u,c);
+            this.updateToTableWithHisto(u, c);
         }
         return this;
     }

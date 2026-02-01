@@ -85,6 +85,7 @@
 
             if (acte.compareToIgnoreCase("insert") == 0) {
                 t = (ClassMAPTable) (Class.forName(classe).newInstance());
+                System.out.println(t.getClass());
                 PageInsert p = new PageInsert(t, request);
                 ClassMAPTable f = p.getObjectAvecValeur();
                 f.setNomTable(nomtable);
