@@ -1,0 +1,6 @@
+build-file
+build.xml
+.idea
+kolotv-ejb/build
+kolotv-ejb/nbproject
+**/*.iml
