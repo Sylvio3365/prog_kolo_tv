@@ -9,16 +9,16 @@
 <%@ page import="bean.*"%>
 <%@ page import="utilitaire.*"%>
 <%@ page import="affichage.*"%>
+<%@ page import="produits.CategorieIngredient" %>
 
 <%
     String autreparsley = "data-parsley-range='[8, 40]' required";
     Media t = new Media();
 
     String  mapping = "media.Media",
-          nomtable = "Media",
-          apres = "media/media-fiche.jsp",
-          titre = "Modification media;";
-
+            nomtable = "Media",
+            apres = "media/media-fiche.jsp",
+            titre = "Modification media;";
 
     PageUpdate pu = new PageUpdate(t, request, (user.UserEJB) session.getValue("u"));
     pu.setLien((String) session.getValue("lien"));
@@ -35,7 +35,7 @@
     pu.getFormu().getChamp("idClient").setPageAppelComplete("client.Client","id","CLIENT");
 
     affichage.Champ[] liste = new affichage.Champ[1];
-    TypeMedia typeMed= new TypeMedia();
+    CategorieIngredient typeMed= new CategorieIngredient();
     liste[0] = new Liste("idTypeMedia", typeMed, "val", "id");
 
     pu.getFormu().changerEnChamp(liste);
@@ -51,9 +51,9 @@
             <div class="box-fiche">
                 <div class="box">
                     <div class="box-title with-border">
-                        <h1 class="box-title"><a href=<%= lien + "?but=media/media-fiche.jsp&id="+id%> <i class="fa fa-arrow-circle-left"></i></a><%=pu.getTitre()%></h1>
+                        <h1 class="box-title"><a href="<%= lien %>?but=media/media-fiche.jsp&id=<%=id%>"><i class="fa fa-arrow-circle-left"></i></a> <%=pu.getTitre()%></h1>
                     </div>
-                    <form action="<%= lien %>?but=apresTarif.jsp&id=<%out.print(request.getParameter("id"));%>" method="post">
+                    <form action="<%= lien %>?but=media/apresModifMedia.jsp&id=<%=id%>" method="post">
                         <%
                             out.println(pu.getFormu().getHtmlInsert());
                         %>
@@ -63,11 +63,6 @@
                             </div>
                             <br><br>
                         </div>
-                        <input name="acte" type="hidden" id="acte" value="update">
-                        <input name="bute" type="hidden" id="bute" value="<%=apres%>">
-                        <input name="classe" type="hidden" id="classe" value="<%=mapping%>">
-                        <input name="rajoutLien" type="hidden" id="rajoutLien" value="id-<%out.print(request.getParameter("id"));%>" >
-                        <input name="nomtable" type="hidden" id="nomtable" value="<%=nomtable%>">
                     </form>
                 </div>
             </div>

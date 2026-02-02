@@ -220,6 +220,10 @@
 
             u.updateObject(f);
             id = f.getTuppleID();
+        %>
+        <script language="JavaScript"> document.location.replace("<%=lien%>?but=<%=bute%>&id=<%=id%>");</script>
+        <%
+            return;
         }
 
         if (acte.compareToIgnoreCase("annuler") == 0) {

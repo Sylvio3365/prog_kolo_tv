@@ -254,7 +254,6 @@ public class MvtCaisse extends ClassEtat {
             this.setIdOp(idReserv);
         }
         MvtCaisse mvt = (MvtCaisse) super.createObject(u, c);
-
         return mvt;
     }
 
