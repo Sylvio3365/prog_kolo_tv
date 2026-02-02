@@ -440,11 +440,7 @@
   }
 
   function enregistrerDates(champId) {
-
-    console.log("id", champId, "hot", hot);
-
     const editableRowIndex = hot.countRows() - 1; // ligne editable
-
     const dayRowIndex = 2; // ligne des numéros des jours
     const colCount = hot.countCols();
 
@@ -464,9 +460,6 @@
 
     for (let col = 0; col < colCount; col++) {
       const val = hot.getDataAtCell(editableRowIndex, col);
-
-      console.log(val);
-
       if (val === 1 || val === '1') { // cellule cochée
         const moisNomComplet = headerRow[col];
         const numeroJour = dayNumbers[col];
@@ -481,19 +474,12 @@
         const dateStr = String(numeroJour).padStart(2,"0") + "/" +
                 String(moisIndex).padStart(2,"0") + "/" +
                 annee;
-
         dates.push(dateStr);
       }
-
     }
 
-    console.log(dates);
-
     const inputField = document.getElementById(champId);
-
-    console.log(inputField, dates.join(";"));
-    inputField.setAttribute("value", dates.join(";"));
-    // inputField.value = dates.join(";");// reconstruire le champ texte
+    inputField.value = dates.join(";");// reconstruire le champ texte
     updateNbSpot(inputField);
     hideChampCalendrier(); // fermer le modal
   }

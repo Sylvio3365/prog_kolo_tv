@@ -153,6 +153,7 @@ public class ReservationDetailsGroupe extends ClassFille {
         setClassMere("reservation.Reservation");
     }
 
+    // ito
     private String[] generateDateDiffusionArray() {
         Date debut = this.getDatedebut();
         Date fin = this.getDatefin();
@@ -171,10 +172,13 @@ public class ReservationDetailsGroupe extends ClassFille {
 
     public ReservationDetails[] genererReservationDetails() throws Exception {
         List<ReservationDetails> reservationDetails = new ArrayList<ReservationDetails>();
-        System.out.println(this.getDatedebut());
-        System.out.println(this.getDatefin());
-        // String[] listDate = this.getDateDiffusion().split(";");
-        String[] listDate = this.generateDateDiffusionArray();
+        // System.out.println(this.getDatedebut());
+        // System.out.println(this.getDatefin());
+
+        String[] listDate = this.getDateDiffusion().split(";");
+        if (listDate.length == 0) {
+            listDate = this.generateDateDiffusionArray();
+        }
         System.out.println(Arrays.toString(listDate));
         System.out.println(listDate.length);
         for (String d : listDate) {
