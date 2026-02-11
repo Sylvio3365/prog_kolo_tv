@@ -211,7 +211,6 @@ public class ReservationDetailsGroupe extends ClassFille {
                 if (existant != null) {
                     String existantIdProduit = existant.getIdproduit();
                     String currentIdProduit = this.getIdproduit();
-
                     boolean memeProduit = (existantIdProduit == null && currentIdProduit == null) ||
                             (existantIdProduit != null && existantIdProduit.equals(currentIdProduit));
                     if (memeProduit) {  
@@ -282,7 +281,7 @@ public class ReservationDetailsGroupe extends ClassFille {
             if (idSupport != null && !idSupport.isEmpty()) {
                 condition += " and idmere in (select id from reservation where idsupport = '" + idSupport + "')";
             }
-            System.out.println("Recherche reservation avec condition: " + condition);
+            // System.out.println("Recherche reservation avec condition: " + condition);
             ReservationDetails[] results = (ReservationDetails[]) CGenUtil.rechercher(search, null, null, c, condition);
             if (results != null && results.length > 0) {
                 return results[0];
