@@ -162,11 +162,9 @@ public class ReservationDetailsGroupe extends ClassFille {
                 throw new Exception("La reservation mere avec l'id " + this.getIdmere() + " est introuvable");
             }
             String idSupport = mere.getIdSupport();
-            System.out.println("Support trouve: " + idSupport);
-
+            // System.out.println("Support trouve: " + idSupport);
             int nombreTotal = listDate.length;
             List<Date> datesValides = new ArrayList<Date>();
-            
             // Trouver la derniere date de la liste pour ajouter apres si besoin
             LocalDate derniereDate = LocalDate.parse(listDate[0], DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             for (String d : listDate) {
