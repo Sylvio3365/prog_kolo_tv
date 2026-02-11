@@ -21,6 +21,7 @@
 <%@ page import="java.time.DayOfWeek" %>
 <%@ page import="java.time.format.TextStyle" %>
 <%@ page import="java.util.Locale" %>
+<%@ page import="param.Parametre" %>
 
 <style>
 .form-input {
@@ -149,9 +150,11 @@ table td {
     /* Recuperer la date par defaut */
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     String dateEncours = request.getParameter("d");
+    
     if (dateEncours != null) {
       dateEncours = CalendarUtil.castDateToFormat(dateEncours, DateTimeFormatter.ofPattern("yyyy-MM-dd"), formatter);
     }
+
     if (dateEncours == null || dateEncours.trim().isEmpty()) {
       LocalDate aujourdHui = LocalDate.now();
       dateEncours = aujourdHui.format(formatter);
@@ -182,6 +185,9 @@ table td {
 
     Support[] supports = (Support[]) CGenUtil.rechercher(new Support(), null, null, null, "");
     CategorieIngredient[] categorieIngredients = (CategorieIngredient[]) CGenUtil.rechercher(new CategorieIngredient(), null, null, null, "");
+    
+    // Recuperer les parametres de pourcentage par jour/heure
+    Parametre[] parametres = (Parametre[]) CGenUtil.rechercher(new Parametre(), null, null, null, "");
 
     // Tableau des jours de la semaine en francais
     String[] joursNoms = {"Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"};
@@ -288,6 +294,14 @@ table td {
             double grandTotalMontant = 0;
             double grandTotalDuree = 0;
             int grandTotalReservations = 0;
+            
+            // Tableau pour stocker les totaux par colonne (jour)
+            double[] totalMontantColonne = new double[listeDate.length];
+            int[] totalReservationsColonne = new int[listeDate.length];
+            for (int idx = 0; idx < listeDate.length; idx++) {
+              totalMontantColonne[idx] = 0;
+              totalReservationsColonne[idx] = 0;
+            }
           %>
           <% for (int i = 0; i < listeHoraire.size(); i++) {
             LocalTime[] intervales = listeHoraire.get(i);
@@ -306,6 +320,7 @@ table td {
               double totalMontantCell = 0;
               double totalDureeCell = 0;
               int nbReservations = 0;
+              double pourcentageMajoration = 0; // Pour afficher la majoration
               
               // Bornes de la plage horaire
               LocalTime plageDebut = intervales[0];
@@ -357,6 +372,48 @@ table td {
                           double proportion = (double) chevauchementDuree / (double) dureeSec;
                           double montantProportionnel = r.getMontantFinal() * proportion;
                           
+                          // Appliquer le pourcentage si l'heure est comprise dans un parametre
+                          LocalDate dateReservation = LocalDate.parse(listeDate[j], formatter);
+                          int jourSemaine = dateReservation.getDayOfWeek().getValue(); // 1=Lundi, 7=Dimanche
+                          
+                          for (Parametre p : parametres) {
+                            System.out.println("=== DEBUG PARAMETRE ===");
+                            System.out.println("Parametre ID: " + p.getId() + ", Jour: " + p.getJour() + ", HeureDebut: " + p.getHeuredebut() + ", HeureFin: " + p.getHeurefin() + ", Pourcentage: " + p.getPourcentage());
+                            System.out.println("Jour reservation: " + jourSemaine + ", Plage cellule: " + plageDebut + " - " + plageFin);
+                            
+                            if (p.getJour() == jourSemaine) {
+                              System.out.println("Jour correspond!");
+                              // Parser les heures du parametre
+                              String heureDebutParam = p.getHeuredebut();
+                              String heureFinParam = p.getHeurefin();
+                              
+                              if (heureDebutParam != null && heureFinParam != null && !heureDebutParam.isEmpty() && !heureFinParam.isEmpty()) {
+                                LocalTime paramDebut = LocalTime.parse(heureDebutParam.trim(), DateTimeFormatter.ofPattern("HH:mm:ss"));
+                                LocalTime paramFin = LocalTime.parse(heureFinParam.trim(), DateTimeFormatter.ofPattern("HH:mm:ss"));
+                                
+                                System.out.println("paramDebut: " + paramDebut + ", paramFin: " + paramFin);
+                                
+                                // Verifier si la PLAGE HORAIRE DE LA CELLULE correspond au parametre
+                                // La plage de la cellule doit etre dans [paramDebut, paramFin[
+                                boolean dansIntervalle = (plageDebut.equals(paramDebut) || plageDebut.isAfter(paramDebut)) 
+                                                      && plageDebut.isBefore(paramFin);
+                                System.out.println("plageDebut >= paramDebut: " + (plageDebut.equals(paramDebut) || plageDebut.isAfter(paramDebut)));
+                                System.out.println("plageDebut < paramFin: " + plageDebut.isBefore(paramFin));
+                                System.out.println("dansIntervalle: " + dansIntervalle);
+                                
+                                if (dansIntervalle) {
+                                  // Appliquer le pourcentage: prix = prix + (pourcentage * prix / 100)
+                                  double pourcentage = p.getPourcentage();
+                                  pourcentageMajoration = pourcentage; // Stocker pour l'affichage
+                                  System.out.println("APPLIQUE pourcentage: " + pourcentage + " sur montant: " + montantProportionnel);
+                                  montantProportionnel = montantProportionnel + (pourcentage * montantProportionnel / 100);
+                                  System.out.println("Nouveau montant: " + montantProportionnel);
+                                  break;
+                                }
+                              }
+                            }
+                          }
+                          
                           totalMontantCell += montantProportionnel;
                           totalDureeCell += chevauchementDuree;
                         }
@@ -371,8 +428,19 @@ table td {
               totalMontantLigne += totalMontantCell;
               totalDureeLigne += totalDureeCell;
               totalReservationsLigne += nbReservations;
+              
+              // Ajouter au total de la colonne (jour)
+              totalMontantColonne[j] += totalMontantCell;
+              totalReservationsColonne[j] += nbReservations;
             %>
             <td class="calendar-cell" style="vertical-align: middle;">
+              <% if (pourcentageMajoration > 0) { %>
+              <div style="text-align: center; margin-bottom: 5px;">
+                <span style="background-color: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">
+                  <i class="fa fa-arrow-up"></i> +<%=Math.round(pourcentageMajoration)%>%
+                </span>
+              </div>
+              <% } %>
               <% if (nbReservations > 0) { %>
               <div style="text-align: center; padding: 5px;">
                 <p style="margin: 2px 0;"><strong><%=nbReservations%></strong> reservation(s)</p>
@@ -405,7 +473,6 @@ table td {
           <tr>
             <th class="calendar-cell-title">TOTAL COLONNE</th>
             <% for (int k = 0; k < listeDate.length; k++) {
-              Double[] tab = total.get(listeDate[k]);
               // Calculer le jour de la semaine pour le footer
               LocalDate dateJour = LocalDate.parse(listeDate[k], formatter);
               String nomJour = dateJour.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.FRENCH);
@@ -413,7 +480,8 @@ table td {
             %>
             <th class="calendar-footer">
               <p><strong><%=nomJour%></strong></p>
-              <p class="montant-total"><%=Utilitaire.formaterAr(tab[0])%> Ar</p>
+              <p class="montant-total"><%=Utilitaire.formaterAr(totalMontantColonne[k])%> Ar</p>
+              <p style="margin: 2px 0; font-size: 11px;"><%=totalReservationsColonne[k]%> res.</p>
             </th>
             <% } %>
             <!-- Grand Total -->

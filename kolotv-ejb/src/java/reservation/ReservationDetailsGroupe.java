@@ -4,11 +4,7 @@ import bean.CGenUtil;
 import bean.ClassFille;
 import bean.ClassMAPTable;
 import emission.Emission;
-import emission.ParrainageEmission;
-import produits.Acte;
-import produits.Ingredients;
-import stock.MvtStock;
-import stock.MvtStockFille;
+import produits.IngredientsLib;
 import utilitaire.UtilDB;
 import utilitaire.Utilitaire;
 import utils.CalendarUtil;
@@ -153,55 +149,148 @@ public class ReservationDetailsGroupe extends ClassFille {
         setClassMere("reservation.Reservation");
     }
 
-    // ito
-    private String[] generateDateDiffusionArray() {
-        Date debut = this.getDatedebut();
-        Date fin = this.getDatefin();
-        List<String> listDate = new ArrayList<>();
-        if (debut != null && fin != null) {
-            LocalDate currentDate = debut.toLocalDate();
-            LocalDate endDate = fin.toLocalDate();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            while (!currentDate.isAfter(endDate)) {
-                listDate.add(currentDate.format(formatter));
-                currentDate = currentDate.plusDays(1);
-            }
-        }
-        return listDate.toArray(new String[0]);
-    }
-
     public ReservationDetails[] genererReservationDetails() throws Exception {
         List<ReservationDetails> reservationDetails = new ArrayList<ReservationDetails>();
-        // System.out.println(this.getDatedebut());
-        // System.out.println(this.getDatefin());
-
         String[] listDate = this.getDateDiffusion().split(";");
-        if (listDate.length == 0) {
-            listDate = this.generateDateDiffusionArray();
+        Connection c = null;
+        try {
+            c = new UtilDB().GetConn();
+            ReservationDetails temp = new ReservationDetails();
+            temp.setIdmere(this.getIdmere());
+            Reservation mere = temp.getMere(c);
+            if (mere == null) {
+                throw new Exception("La reservation mere avec l'id " + this.getIdmere() + " est introuvable");
+            }
+            String idSupport = mere.getIdSupport();
+            System.out.println("Support trouve: " + idSupport);
+
+            int nombreTotal = listDate.length;
+            List<Date> datesValides = new ArrayList<Date>();
+            
+            // Trouver la derniere date de la liste pour ajouter apres si besoin
+            LocalDate derniereDate = LocalDate.parse(listDate[0], DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            for (String d : listDate) {
+                LocalDate ld = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                if (ld.isAfter(derniereDate)) {
+                    derniereDate = ld;
+                }
+            }
+            
+            // Verifier chaque date demandee
+            for (String d : listDate) {
+                LocalDate currentDate = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                Date actuel = Date.valueOf(currentDate);
+                System.out.println("==> Verification: " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+                ReservationDetails existant = getExistingReservation(c, actuel, this.getHeure(), idSupport);
+                if (existant != null) {
+                    String existantIdProduit = existant.getIdproduit();
+                    String currentIdProduit = this.getIdproduit();
+
+                    boolean memeProduit = (existantIdProduit == null && currentIdProduit == null) ||
+                            (existantIdProduit != null && existantIdProduit.equals(currentIdProduit));
+                    if (memeProduit) {  
+                        System.out.println("Date " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " deja prise par meme produit, sera remplacee");
+                    } else {
+                        String libelleProduitExistant = getLibelleProduit(c, existantIdProduit);
+                        throw new Exception("Une reservation existe deja pour la date " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) +
+                                " a " + this.getHeure() + " avec le produit: " + libelleProduitExistant);
+                    }
+                } else {
+                    datesValides.add(actuel);
+                }
+            }
+            
+            // Completer avec les dates suivantes si certaines etaient prises
+            LocalDate nextDate = derniereDate.plusDays(1);
+            while (datesValides.size() < nombreTotal) {
+                Date actuel = Date.valueOf(nextDate);
+                System.out.println("==> Recherche date de remplacement: " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                
+                ReservationDetails existant = getExistingReservation(c, actuel, this.getHeure(), idSupport);
+                if (existant != null) {
+                    String existantIdProduit = existant.getIdproduit();
+                    String currentIdProduit = this.getIdproduit();
+
+                    boolean memeProduit = (existantIdProduit == null && currentIdProduit == null) ||
+                            (existantIdProduit != null && existantIdProduit.equals(currentIdProduit));
+                    if (memeProduit) {  
+                        System.out.println("Date " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " aussi prise, continue...");
+                    } else {
+                        String libelleProduitExistant = getLibelleProduit(c, existantIdProduit);
+                        throw new Exception("Une reservation existe deja pour la date " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) +
+                                " a " + this.getHeure() + " avec le produit: " + libelleProduitExistant);
+                    }
+                } else {
+                    datesValides.add(actuel);
+                    System.out.println("Date de remplacement trouvee: " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                }
+                nextDate = nextDate.plusDays(1);
+            }
+
+            for (Date actuel : datesValides) {
+                ReservationDetails res = new ReservationDetails();
+                res.setIdproduit(this.getIdproduit());
+                res.setIdMedia(this.getIdmedia());
+                res.setHeure(this.getHeure());
+                res.setDaty(actuel);
+                res.setRemarque(this.getRemarque());
+                res.setSource(this.getSource());
+                res.setDuree(this.getDuree());
+                res.setPu(this.getPu());
+                res.setQte(1);
+                res.setIsEntete(this.getIsEntete());
+                res.setOrdre(this.getOrdre());
+                reservationDetails.add(res);
+            }
+
+            return reservationDetails.toArray(new ReservationDetails[] {});
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (c != null) {
+                c.close();
+            }
         }
-        System.out.println(Arrays.toString(listDate));
-        System.out.println(listDate.length);
-        for (String d : listDate) {
-            ReservationDetails res = new ReservationDetails();
-            System.out.println("=>produit");
-            res.setIdproduit(this.getIdproduit());
-            System.out.println("=>media");
-            res.setIdMedia(this.getIdmedia());
-            System.out.println("=>heure");
-            res.setHeure(this.getHeure());
-            System.out.println("=>daty");
-            res.setDaty(Date.valueOf(LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
-            System.out.println("=>remarque");
-            res.setRemarque(this.getRemarque());
-            res.setSource(this.getSource());
-            res.setDuree(this.getDuree());
-            res.setPu(this.getPu());
-            res.setQte(1);
-            res.setIsEntete(this.getIsEntete());
-            res.setOrdre(this.getOrdre());
-            reservationDetails.add(res);
+    }
+
+    private String getLibelleProduit(Connection c, String idProduit) {
+        if (idProduit == null || idProduit.isEmpty()) {
+            return "Produit inconnu";
         }
-        return reservationDetails.toArray(new ReservationDetails[] {});
+        try {
+            IngredientsLib ingredientLib = new IngredientsLib();
+            ingredientLib.setId(idProduit);
+            IngredientsLib[] resultsLib = (IngredientsLib[]) CGenUtil.rechercher(ingredientLib, null, null, c, "");
+            if (resultsLib != null && resultsLib.length > 0) {
+                String libelle = resultsLib[0].getLibelle();
+                if (libelle != null && !libelle.isEmpty()) {
+                    return libelle;
+                }
+            }
+            return "Produit " + idProduit;
+        } catch (Exception e) {
+            return "Produit " + idProduit;
+        }
+    }
+
+    private ReservationDetails getExistingReservation(Connection c, Date daty, String heure, String idSupport) {
+        try {
+            ReservationDetails search = new ReservationDetails();
+            String dateStr = daty.toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String condition = " and DATY = TIMESTAMP '" + dateStr + " 00:00:00.000000' and heure = '" + heure + "'";
+            if (idSupport != null && !idSupport.isEmpty()) {
+                condition += " and idmere in (select id from reservation where idsupport = '" + idSupport + "')";
+            }
+            System.out.println("Recherche reservation avec condition: " + condition);
+            ReservationDetails[] results = (ReservationDetails[]) CGenUtil.rechercher(search, null, null, c, condition);
+            if (results != null && results.length > 0) {
+                return results[0];
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public ReservationDetails[] genererReservationDetailsPourModif(Connection c) throws Exception {
@@ -284,7 +373,7 @@ public class ReservationDetailsGroupe extends ClassFille {
         this.heure = heure;
     }
 
-    public void setDuree(String duree) throws Exception {
+    public void setDuree(String duree) {
         if (!CalendarUtil.isValidTime(duree)) {
             this.duree = duree;
         } else {
@@ -369,6 +458,7 @@ public class ReservationDetailsGroupe extends ClassFille {
             if (request.getParameter("pu_" + id) != null && request.getParameter("pu_" + id).isEmpty() == false) {
                 pu = Double.parseDouble(request.getParameter("pu_" + id));
             }
+
             LocalDate dateDebut = null;
             LocalDate dateFin = null;
             if (request.getParameter("dateDebut_" + id) != null
@@ -454,12 +544,13 @@ public class ReservationDetailsGroupe extends ClassFille {
                         reservationDetails.setRemise(remise);
                         reservationDetails.setQte(1);
                         reservationDetails.setDuree(duree);
+
                         filles.add(reservationDetails);
 
-                        ReservationDetails[] resaParainnage = emission.genererReservationPourSponsors(date, heure_debut,
+                        ReservationDetails[] resaParrainage = emission.genererReservationPourSponsors(date, heure_debut,
                                 c);
-                        if (resaParainnage.length > 0) {
-                            filles.addAll(Arrays.asList(resaParainnage));
+                        if (resaParrainage.length > 0) {
+                            filles.addAll(Arrays.asList(resaParrainage));
                         }
                     }
                 }
@@ -566,5 +657,4 @@ public class ReservationDetailsGroupe extends ClassFille {
             }
         }
     }
-
 }

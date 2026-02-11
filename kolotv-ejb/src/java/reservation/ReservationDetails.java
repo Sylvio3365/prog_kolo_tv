@@ -51,6 +51,16 @@ public class ReservationDetails extends ClassFille {
     int isEntete;
     int ordre;
 
+    public Reservation getMere(Connection c) throws Exception {
+        Reservation search = new Reservation();
+        search.setId(this.getIdmere());
+        Reservation[] list = (Reservation[]) CGenUtil.rechercher(search, null, null, c, "");
+        if (list.length > 0) {
+            return list[0];
+        }
+        return null;
+    }
+
     public int getOrdre() {
         return ordre;
     }
@@ -438,7 +448,6 @@ public class ReservationDetails extends ClassFille {
                 throw new Exception("le type du media et du service doivent etre egal");
             }
             if (service.getDureeMax() > 0) {
-                System.out.println(media.getDuree());
                 if (Integer.parseInt(media.getDuree()) > service.getDureeMax()) {
                     throw new Exception("la duree du media doit etre inferieur ou egal a " + service.getDureeMax());
                 }

@@ -100,24 +100,28 @@
 <%} %>
 
 <% if (acte != null && acte.compareToIgnoreCase("saisieReservationGroupe") == 0) {
-    System.out.println("==> Saisie reservation groupe");
     mere = (Reservation) (Class.forName(classe).newInstance());
     fille = (ReservationDetailsGroupe) (Class.forName(classefille).newInstance());
+    // System.out.println("==> 1");
     PageInsertMultiple p = new PageInsertMultiple(mere, fille, request, nbLine, tId);
     Reservation cmere = (Reservation) p.getObjectAvecValeur();
+    // System.out.println("==> 2");
     ReservationDetailsGroupe [] cfille = (ReservationDetailsGroupe[]) p.getObjectFilleAvecValeur();
     List<ReservationDetails> listeFille = new ArrayList<>();
+    // System.out.println("==> 3");
     for (int i = 0; i < cfille.length; i++) {
         cfille[i].setOrdre(i+1);
         ReservationDetails [] rsdt = cfille[i].genererReservationDetails();
         listeFille.addAll(Arrays.asList(rsdt));
     }
+    // System.out.println("==> 4");
     ClassMAPTable o = (ClassMAPTable) u.createObjectMultiple(cmere, colonneMere, listeFille.toArray(new ReservationDetails[]{}));
     temp = (Object) o;
     if (temp != null) {
         val = temp.toString();
         idmere = o.getTuppleID();
     }
+    // System.out.println("==> 5");
     idmere=cmere.getId();
 %>
 <script language="JavaScript"> document.location.replace("<%=lien%>?but=<%=bute%>&id=<%=idmere%>");</script>
