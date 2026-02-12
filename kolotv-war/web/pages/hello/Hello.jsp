@@ -377,12 +377,12 @@ table td {
                           int jourSemaine = dateReservation.getDayOfWeek().getValue(); // 1=Lundi, 7=Dimanche
                           
                           for (Parametre p : parametres) {
-                            System.out.println("=== DEBUG PARAMETRE ===");
-                            System.out.println("Parametre ID: " + p.getId() + ", Jour: " + p.getJour() + ", HeureDebut: " + p.getHeuredebut() + ", HeureFin: " + p.getHeurefin() + ", Pourcentage: " + p.getPourcentage());
-                            System.out.println("Jour reservation: " + jourSemaine + ", Plage cellule: " + plageDebut + " - " + plageFin);
+                            // System.out.println("=== DEBUG PARAMETRE ===");
+                            // System.out.println("Parametre ID: " + p.getId() + ", Jour: " + p.getJour() + ", HeureDebut: " + p.getHeuredebut() + ", HeureFin: " + p.getHeurefin() + ", Pourcentage: " + p.getPourcentage());
+                            // System.out.println("Jour reservation: " + jourSemaine + ", Plage cellule: " + plageDebut + " - " + plageFin);
                             
                             if (p.getJour() == jourSemaine) {
-                              System.out.println("Jour correspond!");
+                              // System.out.println("Jour correspond!");
                               // Parser les heures du parametre
                               String heureDebutParam = p.getHeuredebut();
                               String heureFinParam = p.getHeurefin();
@@ -391,23 +391,23 @@ table td {
                                 LocalTime paramDebut = LocalTime.parse(heureDebutParam.trim(), DateTimeFormatter.ofPattern("HH:mm:ss"));
                                 LocalTime paramFin = LocalTime.parse(heureFinParam.trim(), DateTimeFormatter.ofPattern("HH:mm:ss"));
                                 
-                                System.out.println("paramDebut: " + paramDebut + ", paramFin: " + paramFin);
+                                // System.out.println("paramDebut: " + paramDebut + ", paramFin: " + paramFin);
                                 
                                 // Verifier si la PLAGE HORAIRE DE LA CELLULE correspond au parametre
                                 // La plage de la cellule doit etre dans [paramDebut, paramFin[
                                 boolean dansIntervalle = (plageDebut.equals(paramDebut) || plageDebut.isAfter(paramDebut)) 
                                                       && plageDebut.isBefore(paramFin);
-                                System.out.println("plageDebut >= paramDebut: " + (plageDebut.equals(paramDebut) || plageDebut.isAfter(paramDebut)));
-                                System.out.println("plageDebut < paramFin: " + plageDebut.isBefore(paramFin));
-                                System.out.println("dansIntervalle: " + dansIntervalle);
+                                // System.out.println("plageDebut >= paramDebut: " + (plageDebut.equals(paramDebut) || plageDebut.isAfter(paramDebut)));
+                                // System.out.println("plageDebut < paramFin: " + plageDebut.isBefore(paramFin));
+                                // System.out.println("dansIntervalle: " + dansIntervalle);
                                 
                                 if (dansIntervalle) {
                                   // Appliquer le pourcentage: prix = prix + (pourcentage * prix / 100)
                                   double pourcentage = p.getPourcentage();
                                   pourcentageMajoration = pourcentage; // Stocker pour l'affichage
-                                  System.out.println("APPLIQUE pourcentage: " + pourcentage + " sur montant: " + montantProportionnel);
+                                  // System.out.println("APPLIQUE pourcentage: " + pourcentage + " sur montant: " + montantProportionnel);
                                   montantProportionnel = montantProportionnel + (pourcentage * montantProportionnel / 100);
-                                  System.out.println("Nouveau montant: " + montantProportionnel);
+                                  // System.out.println("Nouveau montant: " + montantProportionnel);
                                   break;
                                 }
                               }

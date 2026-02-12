@@ -162,9 +162,21 @@ public class ReservationDetailsGroupe extends ClassFille {
                 throw new Exception("La reservation mere avec l'id " + this.getIdmere() + " est introuvable");
             }
             String idSupport = mere.getIdSupport();
-            // System.out.println("Support trouve: " + idSupport);
             int nombreTotal = listDate.length;
             List<Date> datesValides = new ArrayList<Date>();
+            
+            // Debug info nouvelle reservation
+            long newHeureDebut = convertHeureToSeconds(this.getHeure());
+            long newDuree = Long.parseLong(this.getDuree() != null && !this.getDuree().isEmpty() ? this.getDuree() : "0");
+            long newHeureFin = newHeureDebut + newDuree;
+            System.out.println("=== NOUVELLE RESERVATION ===");
+            System.out.println("Media: " + this.getIdmedia());
+            System.out.println("Heure debut: " + this.getHeure() + " (" + newHeureDebut + "s)");
+            System.out.println("Duree: " + this.getDuree() + "s");
+            System.out.println("Heure fin: " + secondsToHeure(newHeureFin) + " (" + newHeureFin + "s)");
+            System.out.println("Plage: " + this.getHeure() + " - " + secondsToHeure(newHeureFin));
+            System.out.println("============================");
+            
             // Trouver la derniere date de la liste pour ajouter apres si besoin
             LocalDate derniereDate = LocalDate.parse(listDate[0], DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             for (String d : listDate) {
@@ -173,58 +185,61 @@ public class ReservationDetailsGroupe extends ClassFille {
                     derniereDate = ld;
                 }
             }
-            
-            // Verifier chaque date demandee
             for (String d : listDate) {
                 LocalDate currentDate = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Date actuel = Date.valueOf(currentDate);
-                System.out.println("==> Verification: " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-
-                ReservationDetails existant = getExistingReservation(c, actuel, this.getHeure(), idSupport);
-                if (existant != null) {
-                    String existantIdProduit = existant.getIdproduit();
-                    String currentIdProduit = this.getIdproduit();
-
-                    boolean memeProduit = (existantIdProduit == null && currentIdProduit == null) ||
-                            (existantIdProduit != null && existantIdProduit.equals(currentIdProduit));
-                    if (memeProduit) {  
-                        System.out.println("Date " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " deja prise par meme produit, sera remplacee");
+                System.out.println("\n==> Verification: " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                
+                ReservationDetails[] existantes = getAllExistingReservations(c, actuel, idSupport);
+                System.out.println("  Nombre de reservations existantes: " + existantes.length);
+                
+                if (existantes.length > 0) {
+                    String currentIdMedia = this.getIdmedia();
+                    boolean conflit = hasConflict(existantes, currentIdMedia, newHeureDebut, newHeureFin);
+                    
+                    if (conflit) {
+                        System.out.println("  => Date " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                + " deja prise par meme media avec chevauchement, sera remplacee");
                     } else {
-                        String libelleProduitExistant = getLibelleProduit(c, existantIdProduit);
-                        throw new Exception("Une reservation existe deja pour la date " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) +
-                                " a " + this.getHeure() + " avec le produit: " + libelleProduitExistant);
+                        System.out.println("  => Date valide (pas de conflit media+horaire)");
+                        datesValides.add(actuel);
                     }
                 } else {
+                    System.out.println("  => Aucune reservation existante, date valide");
                     datesValides.add(actuel);
                 }
             }
             
-            // Completer avec les dates suivantes si certaines etaient prises
             LocalDate nextDate = derniereDate.plusDays(1);
             while (datesValides.size() < nombreTotal) {
                 Date actuel = Date.valueOf(nextDate);
-                System.out.println("==> Recherche date de remplacement: " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                System.out.println("\n==> Recherche date de remplacement: "
+                        + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+                ReservationDetails[] existantes = getAllExistingReservations(c, actuel, idSupport);
+                System.out.println("  Nombre de reservations existantes: " + existantes.length);
                 
-                ReservationDetails existant = getExistingReservation(c, actuel, this.getHeure(), idSupport);
-                if (existant != null) {
-                    String existantIdProduit = existant.getIdproduit();
-                    String currentIdProduit = this.getIdproduit();
-                    boolean memeProduit = (existantIdProduit == null && currentIdProduit == null) ||
-                            (existantIdProduit != null && existantIdProduit.equals(currentIdProduit));
-                    if (memeProduit) {  
-                        System.out.println("Date " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " aussi prise, continue...");
+                if (existantes.length > 0) {
+                    String currentIdMedia = this.getIdmedia();
+                    boolean conflit = hasConflict(existantes, currentIdMedia, newHeureDebut, newHeureFin);
+                    
+                    if (conflit) {
+                        System.out.println("  => Date " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                + " aussi prise, continue...");
                     } else {
-                        String libelleProduitExistant = getLibelleProduit(c, existantIdProduit);
-                        throw new Exception("Une reservation existe deja pour la date " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) +
-                                " a " + this.getHeure() + " avec le produit: " + libelleProduitExistant);
+                        datesValides.add(actuel);
+                        System.out.println("  => Date de remplacement trouvee: "
+                                + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                     }
                 } else {
                     datesValides.add(actuel);
-                    System.out.println("Date de remplacement trouvee: " + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                    System.out.println("  => Date de remplacement trouvee: "
+                            + nextDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 }
                 nextDate = nextDate.plusDays(1);
             }
 
+            System.out.println("\n=== CREATION DES RESERVATIONS ===");
             for (Date actuel : datesValides) {
                 ReservationDetails res = new ReservationDetails();
                 res.setIdproduit(this.getIdproduit());
@@ -239,7 +254,12 @@ public class ReservationDetailsGroupe extends ClassFille {
                 res.setIsEntete(this.getIsEntete());
                 res.setOrdre(this.getOrdre());
                 reservationDetails.add(res);
+                System.out.println("Creation reservation: Date=" + actuel.toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) 
+                        + " | Heure=" + this.getHeure() + " | Duree=" + this.getDuree() + "s | Fin=" + secondsToHeure(newHeureFin)
+                        + " | Media=" + this.getIdmedia());
             }
+            System.out.println("=================================");
+            System.out.println("Total reservations creees: " + reservationDetails.size());
 
             return reservationDetails.toArray(new ReservationDetails[] {});
         } catch (Exception e) {
@@ -271,23 +291,130 @@ public class ReservationDetailsGroupe extends ClassFille {
         }
     }
 
-    private ReservationDetails getExistingReservation(Connection c, Date daty, String heure, String idSupport) {
+    private long convertHeureToSeconds(String heure) {
+        if (heure == null || heure.isEmpty()) {
+            return 0;
+        }
+        try {
+            String[] parts = heure.split(":");
+            long heures = Long.parseLong(parts[0]);
+            long minutes = parts.length > 1 ? Long.parseLong(parts[1]) : 0;
+            long secondes = parts.length > 2 ? Long.parseLong(parts[2]) : 0;
+            return heures * 3600 + minutes * 60 + secondes;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String secondsToHeure(long totalSeconds) {
+        long heures = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long secondes = totalSeconds % 60;
+        return String.format("%02d:%02d:%02d", heures, minutes, secondes);
+    }
+
+    /**
+     * Recupere TOUTES les reservations existantes pour une date et un support
+     */
+    private ReservationDetails[] getAllExistingReservations(Connection c, Date daty, String idSupport) {
         try {
             ReservationDetails search = new ReservationDetails();
             String dateStr = daty.toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String condition = " and DATY = TIMESTAMP '" + dateStr + " 00:00:00.000000' and heure = '" + heure + "'";
-            if (idSupport != null && !idSupport.isEmpty()) {
-                condition += " and idmere in (select id from reservation where idsupport = '" + idSupport + "')";
-            }
-            // System.out.println("Recherche reservation avec condition: " + condition);
+            String condition = " and DATY = TIMESTAMP '" + dateStr + " 00:00:00.000000'";
+            // if (idSupport != null && !idSupport.isEmpty()) {
+            //     condition += " and idmere in (select id from reservation where idsupport = '" + idSupport + "')";
+            // }
             ReservationDetails[] results = (ReservationDetails[]) CGenUtil.rechercher(search, null, null, c, condition);
             if (results != null && results.length > 0) {
-                return results[0];
+                // Pour chaque resultat, recuperer l'idMedia depuis la base si null
+                for (ReservationDetails result : results) {
+                    if (result.getIdMedia() == null || result.getIdMedia().isEmpty()) {
+                        String idMedia = getIdMediaFromDb(c, result.getId());
+                        result.setIdMedia(idMedia);
+                    }
+                }
+                return results;
             }
-            return null;
+            return new ReservationDetails[0];
         } catch (Exception e) {
-            return null;
+            return new ReservationDetails[0];
         }
+    }
+    
+    /**
+     * Verifie les conflits avec les reservations existantes
+     * - Si existantIdMedia est NULL -> Ignorer (pas de media associe, pas de conflit)
+     * - Si MEME media (non-null) + chevauchement horaire -> return true (conflit, chercher autre date)
+     * - Si media DIFFERENT (les deux non-null) + chevauchement horaire -> Exception (plage occupee par autre media)
+     * @return true si conflit avec meme media, false sinon
+     * @throws Exception si chevauchement avec un media different
+     */
+    private boolean hasConflict(ReservationDetails[] existantes, String newIdMedia, long newHeureDebut, long newHeureFin) throws Exception {
+        for (ReservationDetails existant : existantes) {
+            String existantIdMedia = existant.getIdMedia();
+            
+            // Si l'existant n'a pas de media, on l'ignore (pas de conflit possible)
+            if (existantIdMedia == null || existantIdMedia.isEmpty()) {
+                System.out.println("    Reservation " + existant.getId() + " ignoree (pas de media associe)");
+                continue;
+            }
+            
+            // Calculer les plages horaires de l'existant
+            long existantHeureDebut = convertHeureToSeconds(existant.getHeure());
+            long existantDuree = Long.parseLong(existant.getDuree() != null && !existant.getDuree().isEmpty() ? existant.getDuree() : "0");
+            long existantHeureFin = existantHeureDebut + existantDuree;
+            
+            // Verifier chevauchement: debut1 < fin2 ET debut2 < fin1
+            boolean chevauchement = newHeureDebut < existantHeureFin && existantHeureDebut < newHeureFin;
+            
+            // Verifier si c'est le meme media (les deux sont non-null ici)
+            boolean memeMedia = existantIdMedia.equals(newIdMedia);
+            
+            System.out.println("    Comparaison avec reservation " + existant.getId() + ":");
+            System.out.println("      Media existant: " + existantIdMedia + " | Media nouveau: " + newIdMedia + " | Meme media: " + memeMedia);
+            System.out.println("      Existant - Heure: " + existant.getHeure() + " (" + existantHeureDebut + "s) | Duree: " + existant.getDuree() + "s | Fin: " + secondsToHeure(existantHeureFin) + " (" + existantHeureFin + "s)");
+            System.out.println("      Nouveau  - Heure: " + secondsToHeure(newHeureDebut) + " (" + newHeureDebut + "s) | Duree: " + (newHeureFin - newHeureDebut) + "s | Fin: " + secondsToHeure(newHeureFin) + " (" + newHeureFin + "s)");
+            System.out.println("      Chevauchement: " + chevauchement);
+            
+            if (chevauchement) {
+                if (memeMedia) {
+                    // MEME media + chevauchement = conflit (chercher autre date)
+                    System.out.println("      => CONFLIT MEME MEDIA - chercher autre date");
+                    return true;
+                } else {
+                    // Media DIFFERENT (les deux non-null) + chevauchement = EXCEPTION
+                    String message = "ERREUR: La plage horaire " + secondsToHeure(newHeureDebut) + " - " + secondsToHeure(newHeureFin) 
+                            + " est deja occupee par un autre media (Media existant: " + existantIdMedia 
+                            + ", Media nouveau: " + newIdMedia + ")";
+                    System.out.println("      => EXCEPTION: " + message);
+                    throw new Exception(message);
+                }
+            }
+        }
+        return false;
+    }
+    
+
+    private String getIdMediaFromDb(Connection c, String idReservationDetails) {
+        java.sql.PreparedStatement pstmt = null;
+        java.sql.ResultSet rs = null;
+        try {
+            String sql = "SELECT IDMEDIA FROM RESERVATIONDETAILS WHERE ID = ?";
+            pstmt = c.prepareStatement(sql);
+            pstmt.setString(1, idReservationDetails);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String idMedia = rs.getString("IDMEDIA");
+                // System.out.println("    [DB] IdMedia recupere pour " + idReservationDetails + ": " + idMedia);
+                return idMedia;
+            }
+        } catch (Exception e) {
+            System.out.println("    [DB] Erreur recuperation IdMedia: " + e.getMessage());
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
+        }
+        return null;
     }
 
     public ReservationDetails[] genererReservationDetailsPourModif(Connection c) throws Exception {
